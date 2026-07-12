@@ -4,51 +4,62 @@ include 'lip/conn.php';
 
 if (isset($_POST['btnsignup'])) {
   $name = mysqli_real_escape_string($conn, $_POST['name']);
-  $email = mysqli_real_escape_string($conn, $_POST['email']);
-  $jobtitle = mysqli_real_escape_string($conn, $_POST['jobtitle']);
   $username = mysqli_real_escape_string($conn, $_POST['username']);
+  $email = mysqli_real_escape_string($conn, $_POST['email']);
   $password = mysqli_real_escape_string($conn, $_POST['password']);
   $confirm = mysqli_real_escape_string($conn, $_POST['confirm_password']);
-  $role = mysqli_real_escape_string($conn, $_POST['role']);
 
   if ($password !== $confirm) {
     $error = "Password-ka iyo xaqiijintiisu isku mid ma aha";
   } else {
 
-    // Hubi haddii email-ku horey u jiro
-    $check = mysqli_query($conn, "SELECT empid FROM employee WHERE email = '$email'");
+    // Hubi haddii username-ku horey u jiro
+    $check = mysqli_query($conn, "SELECT user_id FROM user WHERE username = '$username'");
 
     if ($check === false) {
       die("Query Error: " . mysqli_error($conn));
     }
 
     if (mysqli_num_rows($check) > 0) {
-      $error = "Email-kan horey ayaa loo diiwaan geliyay";
+      $error = "Username-kan horey ayaa loo isticmaalay";
     } else {
 
-      // 1) Ku dar shaqaalaha (employee)
-      $insertEmp = mysqli_query($conn, "
-                INSERT INTO employee (name, email, jobtitle)
-                VALUES ('$name', '$email', '$jobtitle')
-            ");
+      // Hubi haddii email-ku horey u jiro
+      $checkEmail = mysqli_query($conn, "SELECT empid FROM employee WHERE email = '$email'");
 
-      if ($insertEmp === false) {
+      if ($checkEmail === false) {
         die("Query Error: " . mysqli_error($conn));
       }
 
-      $empid = mysqli_insert_id($conn);
+      if (mysqli_num_rows($checkEmail) > 0) {
+        $error = "Email-kan horey ayaa loo diiwaan geliyay";
+      } else {
 
-      // 2) Ku dar user-ka (account login-ka)
-      $insertUser = mysqli_query($conn, "
-                INSERT INTO user (empid, username, password, role)
-                VALUES ('$empid', '$username', '$password', '$role')
-            ");
+        // 1) Ku dar shaqaalaha (employee) - magaca iyo email
+        $insertEmp = mysqli_query($conn, "
+                    INSERT INTO employee (name, email)
+                    VALUES ('$name', '$email')
+                ");
 
-      if ($insertUser === false) {
-        die("Query Error: " . mysqli_error($conn));
+        if ($insertEmp === false) {
+          die("Query Error: " . mysqli_error($conn));
+        }
+
+        $empid = mysqli_insert_id($conn);
+
+        // 2) Ku dar user-ka (account login-ka) - role waa default
+        $role = 'staff';
+        $insertUser = mysqli_query($conn, "
+                    INSERT INTO user (empid, username, password, role)
+                    VALUES ('$empid', '$username', '$password', '$role')
+                ");
+
+        if ($insertUser === false) {
+          die("Query Error: " . mysqli_error($conn));
+        }
+
+        $success = "Account-ka si guul leh ayaa loo abuuray. Fadlan Login samee.";
       }
-
-      $success = "Account-ka si guul leh ayaa loo abuuray. Fadlan Login samee.";
     }
   }
 }
@@ -130,8 +141,7 @@ if (isset($_POST['btnsignup'])) {
       margin-bottom: 25px;
     }
 
-    .form-control,
-    .form-select {
+    .form-control {
       height: 50px;
       border-radius: 8px;
     }
@@ -186,11 +196,15 @@ if (isset($_POST['btnsignup'])) {
           <div class="login-subtitle">Samee account cusub</div>
 
           <?php if (isset($error)): ?>
-            <div class="alert alert-danger"><?php echo $error; ?></div>
+            <div class="alert alert-danger">
+              <?php echo $error; ?>
+            </div>
           <?php endif; ?>
 
           <?php if (isset($success)): ?>
-            <div class="alert alert-success"><?php echo $success; ?></div>
+            <div class="alert alert-success">
+              <?php echo $success; ?>
+            </div>
           <?php endif; ?>
 
           <form method="post">
@@ -201,27 +215,13 @@ if (isset($_POST['btnsignup'])) {
             </div>
 
             <div class="form-group mb-3">
-              <label>Email*</label>
-              <input type="email" name="email" class="form-control" placeholder="Geli email-kaaga" required>
-            </div>
-
-            <div class="form-group mb-3">
-              <label>Jobtitle*</label>
-              <input type="text" name="jobtitle" class="form-control" placeholder="Tusaale: Manager" required>
-            </div>
-
-            <div class="form-group mb-3">
               <label>Username*</label>
               <input type="text" name="username" class="form-control" placeholder="Geli username" required>
             </div>
 
             <div class="form-group mb-3">
-              <label>Role*</label>
-              <select name="role" class="form-select" required>
-                <option value="">-- Dooro Role --</option>
-                <option value="admin">Admin</option>
-                <option value="staff">Staff</option>
-              </select>
+              <label>Email*</label>
+              <input type="email" name="email" class="form-control" placeholder="Geli email-kaaga" required>
             </div>
 
             <div class="form-group mb-3">
